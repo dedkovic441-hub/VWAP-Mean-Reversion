@@ -70,72 +70,73 @@ button,select,input{min-height:42px}
 }
 
 
-/* TradingView-inspired dark terminal skin */
+/* KuCoin-inspired exchange terminal theme */
 :root{
- --bg:#131722;--panel:#1e222d;--panel2:#161a25;--line:#2a2e39;
- --text:#d1d4dc;--muted:#787b86;--green:#26a69a;--red:#ef5350;
- --blue:#2962ff;--yellow:#f0b90b;
+ --bg:#0b0e11;--panel:#151a1e;--panel2:#101518;--line:#252a30;
+ --text:#eaecef;--muted:#848e9c;--green:#23ae75;--red:#f6465d;
+ --blue:#3d8dff;--yellow:#f0b90b;
 }
-body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Trebuchet MS",Roboto,Arial,sans-serif;font-size:13px}
-header{height:54px;background:#1e222d;border-bottom:1px solid #2a2e39;padding:0 18px}
-.logo{border-radius:4px;background:#2962ff;width:28px;height:28px}
-.brand{font-size:14px;gap:9px}
-.badge{border-radius:3px;color:#9db7ff;border-color:#34456d;background:#202b43;font-size:9px}
-.dot{width:6px;height:6px}
-main{max-width:1680px;padding:16px 18px}
-.topline{margin-bottom:12px;align-items:center}
-.eyebrow{font-size:10px;color:#787b86;letter-spacing:.09em}
-.title{font-size:21px;font-weight:650;letter-spacing:-.35px}
-.subtitle{font-size:12px;color:#787b86}
-button{background:#2a2e39;border-color:#363a45;border-radius:4px;color:#d1d4dc;padding:8px 12px}
-button:hover{border-color:#687080;background:#343945}
-button.primary{background:#2962ff;border-color:#2962ff;color:white}
-button.primary:hover{background:#1e53e5}
-.grid{gap:10px;grid-template-columns:minmax(0,1fr) 300px}
+body{background:#0b0e11;color:#eaecef;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;font-size:13px}
+header{height:56px;background:#11161a;border-bottom:1px solid #252a30;padding:0 20px}
+.brand{font-size:14px;gap:10px;color:#eaecef}
+.logo{width:29px;height:29px;border-radius:5px;background:#23ae75;color:#07120d}
+.badge{border-radius:4px;color:#9ba7b4;border-color:#35404a;background:#1a2228;font-size:9px}
+.header-right{color:#848e9c}
+.dot{width:7px;height:7px}
+main{max-width:1720px;padding:16px 18px}
+.topline{margin-bottom:13px;align-items:center}
+.eyebrow{font-size:10px;color:#848e9c;letter-spacing:.1em}
+.title{font-size:21px;font-weight:650;letter-spacing:-.25px;color:#f0f2f5}
+.subtitle{font-size:12px;color:#848e9c}
+button{background:#1c242a;border:1px solid #35404a;border-radius:5px;color:#eaecef;padding:8px 13px}
+button:hover{background:#263139;border-color:#52616d}
+button.primary{background:#23ae75;border-color:#23ae75;color:#07120d;font-weight:650}
+button.primary:hover{background:#2bc987;border-color:#2bc987}
+.grid{grid-template-columns:minmax(0,1fr) 305px;gap:10px}
 .maincol,.sidecol{gap:10px}
-.cards{gap:8px}
-.card,.panel{background:#1e222d;border:1px solid #2a2e39;border-radius:4px;box-shadow:none}
+.cards{gap:9px}
+.card,.panel{background:#151a1e;border:1px solid #252a30;border-radius:6px;box-shadow:none}
 .card{padding:12px 14px}
-.label{font-size:10px;letter-spacing:.04em;color:#787b86}
-.value{font-size:21px;font-weight:600;letter-spacing:-.3px}
-.change{font-size:10px;color:#787b86}
-.panel-head{padding:11px 13px;border-bottom:1px solid #2a2e39;background:#1e222d}
-.panel-title{font-size:12px;font-weight:600;color:#d1d4dc}
-.panel-sub{font-size:10px;color:#787b86}
-.chart-wrap{height:490px;background:#131722;padding:6px 8px 10px}
-.chart-wrap canvas{background:#131722}
-.chart-legend{font-size:10px;gap:12px;color:#9598a1}
+.label{font-size:10px;color:#848e9c;letter-spacing:.045em}
+.value{font-size:21px;font-weight:650;letter-spacing:-.25px;color:#eaecef}
+.change{font-size:10px;color:#848e9c}
+.panel-head{padding:11px 13px;border-bottom:1px solid #252a30;background:#151a1e}
+.panel-title{font-size:12px;font-weight:650;color:#eaecef}
+.panel-sub{font-size:10px;color:#848e9c}
+.chart-wrap{height:490px;background:#0b0e11;padding:7px 8px 10px}
+.chart-wrap canvas{background:#0b0e11}
+.chart-legend{font-size:10px;gap:12px;color:#9ba4ad}
 .controls{padding:12px;gap:10px}
-.field label{color:#9598a1;font-size:10px}
-.field input,.field select{background:#131722;border:1px solid #363a45;border-radius:3px;color:#d1d4dc;padding:8px}
-.field input:focus,.field select:focus{border-color:#2962ff}
-.signal-status{background:#191e2b;border:1px solid #363a45;border-radius:3px}
-.signal-status.long{background:rgba(38,166,154,.10);border-color:#26a69a}
-.signal-status.short{background:rgba(239,83,80,.10);border-color:#ef5350}
-.signal-name{font-size:17px;font-weight:650}
-.metric-row{border-color:#2a2e39;color:#d1d4dc}
-th{background:#191e2b;color:#9598a1}
-th,td{border-bottom:1px solid #2a2e39}
-td{color:#c5c8d1}
-.pill{border-radius:3px}
-.pill.long{background:rgba(38,166,154,.16);color:#26a69a}
-.pill.short{background:rgba(239,83,80,.16);color:#ef5350}
-.pill.wait{background:#2a2e39;color:#aeb2bd}
-.note{color:#9598a1}
-.footer{color:#686d7a}
+.field label{color:#9ba4ad;font-size:10px}
+.field input,.field select{background:#0b0e11;border:1px solid #303840;border-radius:4px;color:#eaecef;padding:8px}
+.field input:focus,.field select:focus{border-color:#23ae75}
+.signal-status{background:#10171b;border:1px solid #303840;border-radius:5px}
+.signal-status.long{background:rgba(35,174,117,.10);border-color:#23ae75}
+.signal-status.short{background:rgba(246,70,93,.10);border-color:#f6465d}
+.signal-name{font-size:17px;font-weight:700}
+.metric-row{border-color:#252a30;color:#eaecef}
+th{background:#11171b;color:#9ba4ad}
+th,td{border-bottom:1px solid #252a30}
+td{color:#d5dbe1}
+.pill{border-radius:4px}
+.pill.long{background:rgba(35,174,117,.15);color:#23ae75}
+.pill.short{background:rgba(246,70,93,.15);color:#f6465d}
+.pill.wait{background:#252d33;color:#aeb8c2}
+.note{color:#9ba4ad}
+.footer{color:#66717c}
+.green{color:#23ae75}.red{color:#f6465d}
 @media(max-width:1050px){.grid{grid-template-columns:1fr}}
 @media(max-width:650px){
- header{background:#1e222d;padding:9px 12px}
+ header{height:auto;min-height:58px;background:#11161a;padding:9px 12px}
  main{padding:9px}
  .title{font-size:19px}
- .chart-wrap{height:340px;background:#131722}
+ .chart-wrap{height:340px;background:#0b0e11}
  .card{padding:9px}
  .value{font-size:17px}
  .panel-head{padding:10px}
  .controls{padding:10px}
 }
 @media(max-width:380px){.chart-wrap{height:285px}}
-
 </style>
 </head>
 <body>
@@ -390,12 +391,12 @@ function drawChart(){
   for(let k=0;k<=5;k++){let val=min+(max-min)*k/5,yy=y(val);ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(W-pad.r,yy);ctx.stroke();ctx.fillText(fmt(val),W-pad.r+7,yy+3)}
   ctx.beginPath();data.forEach((d,j)=>{let i=from+j;j?ctx.lineTo(x(j),y(indicators.upper[i])):ctx.moveTo(x(j),y(indicators.upper[i]))});
   for(let j=data.length-1;j>=0;j--){let i=from+j;ctx.lineTo(x(j),y(indicators.lower[i]))}
-  ctx.closePath();ctx.fillStyle='rgba(244,199,107,.07)';ctx.fill();
+  ctx.closePath();ctx.fillStyle='rgba(240,185,11,.055)';ctx.fill();
   function line(arr,color,width,dash=[]){ctx.beginPath();arr.slice(from).forEach((v,j)=>j?ctx.lineTo(x(j),y(v)):ctx.moveTo(x(j),y(v)));ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.stroke();ctx.setLineDash([])}
-  line(indicators.upper,'rgba(244,199,107,.8)',1,[4,4]);line(indicators.lower,'rgba(244,199,107,.8)',1,[4,4]);line(indicators.vwap,'#65a9ff',1.8);
+  line(indicators.upper,'rgba(240,185,11,.72)',1,[4,4]);line(indicators.lower,'rgba(240,185,11,.72)',1,[4,4]);line(indicators.vwap,'#3d8dff',1.8);
   const body=Math.max(2,cw/data.length*.62);
-  data.forEach((d,j)=>{let xx=x(j),up=d.c>=d.o;ctx.strokeStyle=up?'#22c98a':'#ff647c';ctx.fillStyle=ctx.strokeStyle;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(xx,y(d.h));ctx.lineTo(xx,y(d.l));ctx.stroke();let top=y(Math.max(d.o,d.c)),ht=Math.max(1,Math.abs(y(d.o)-y(d.c)));ctx.fillRect(xx-body/2,top,body,ht)});
-  signals.filter(s=>s.i>=from).forEach(s=>{let xx=x(s.i),yy=y(s.price),buy=s.side==='LONG';ctx.fillStyle=buy?'#22c98a':'#ff647c';ctx.beginPath();if(buy){ctx.moveTo(xx,yy+12);ctx.lineTo(xx-7,yy+24);ctx.lineTo(xx+7,yy+24)}else{ctx.moveTo(xx,yy-12);ctx.lineTo(xx-7,yy-24);ctx.lineTo(xx+7,yy-24)}ctx.closePath();ctx.fill();ctx.font='bold 10px system-ui';ctx.textAlign='center';ctx.fillText(buy?'BUY':'SELL',xx,buy?yy+37:yy-29);ctx.textAlign='left'});
+  data.forEach((d,j)=>{let xx=x(j),up=d.c>=d.o;ctx.strokeStyle=up?'#23ae75':'#f6465d';ctx.fillStyle=ctx.strokeStyle;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(xx,y(d.h));ctx.lineTo(xx,y(d.l));ctx.stroke();let top=y(Math.max(d.o,d.c)),ht=Math.max(1,Math.abs(y(d.o)-y(d.c)));ctx.fillRect(xx-body/2,top,body,ht)});
+  signals.filter(s=>s.i>=from).forEach(s=>{let xx=x(s.i),yy=y(s.price),buy=s.side==='LONG';ctx.fillStyle=buy?'#23ae75':'#f6465d';ctx.beginPath();if(buy){ctx.moveTo(xx,yy+12);ctx.lineTo(xx-7,yy+24);ctx.lineTo(xx+7,yy+24)}else{ctx.moveTo(xx,yy-12);ctx.lineTo(xx-7,yy-24);ctx.lineTo(xx+7,yy-24)}ctx.closePath();ctx.fill();ctx.font='bold 10px system-ui';ctx.textAlign='center';ctx.fillText(buy?'BUY':'SELL',xx,buy?yy+37:yy-29);ctx.textAlign='left'});
   ctx.fillStyle='#8291aa';ctx.fillText('Older',pad.l,H-5);ctx.fillText('Latest',W-pad.r-30,H-5);
 }
 function backtest(){
