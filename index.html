@@ -177,6 +177,19 @@ td{color:#d5dbe1}
   outline:2px solid #23ae75;outline-offset:3px;
 }
 
+
+/* Interactive chart toolbar and viewport gestures */
+.chart-toolbar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;background:#11171b;border-bottom:1px solid #252a30}
+.tf-buttons,.chart-tools{display:flex;align-items:center;gap:5px}
+.tf-btn{padding:5px 9px!important;min-height:28px;border-radius:4px!important;font-size:11px!important;font-weight:650;background:transparent!important;border-color:transparent!important;color:#9ba4ad!important}
+.tf-btn.active{background:rgba(35,174,117,.16)!important;border-color:rgba(35,174,117,.45)!important;color:#23ae75!important}
+.chart-hint{font-size:10px;color:#697681}
+.reset-chart{padding:5px 8px!important;min-height:28px;border-radius:4px!important;font-size:10px!important}
+.chart-wrap{touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+.chart-wrap.dragging{cursor:grabbing}
+#chart{display:block;width:100%;height:100%;touch-action:none}
+@media(max-width:650px){.chart-toolbar{padding:7px 8px}.tf-buttons{width:100%;justify-content:space-between}.tf-btn{flex:1;padding:5px 4px!important}.chart-tools{width:100%;justify-content:space-between}.chart-hint{font-size:9px}}
+
 </style>
 </head>
 <body>
@@ -199,7 +212,12 @@ td{color:#d5dbe1}
     <div class="maincol">
       <section class="panel">
         <div class="panel-head"><div><div class="panel-title">Selected coin · Live Binance Futures candles</div><div class="panel-sub" id="chartSub">Binance USDⓈ-M Futures · loading candles…</div></div><div class="chart-legend"><span><i class="legend-dot" style="background:#22c98a"></i>Price up</span><span><i class="legend-dot" style="background:#ff647c"></i>Price down</span><span><i class="legend-dot" style="background:#65a9ff"></i>VWAP</span><span><i class="legend-dot" style="background:#f4c76b"></i>Deviation bands</span><span class="green">▲ BUY</span><span class="red">▼ SELL</span></div></div>
-        <div class="chart-wrap"><canvas id="chart"></canvas></div>
+        <div class="chart-toolbar">
+  <div class="tf-buttons">
+    <button type="button" class="tf-btn" data-tf="1m">1m</button><button type="button" class="tf-btn" data-tf="5m">5m</button><button type="button" class="tf-btn" data-tf="15m">15m</button><button type="button" class="tf-btn" data-tf="1h">1h</button><button type="button" class="tf-btn" data-tf="4h">4h</button><button type="button" class="tf-btn" data-tf="1d">1d</button>
+  </div>
+  <div class="chart-tools"><span class="chart-hint">Drag to pan · Scroll or pinch to zoom</span><button type="button" id="resetChart" class="reset-chart">↺ Reset</button></div>
+</div><div class="chart-wrap"><canvas id="chart"></canvas></div>
       </section>
       <section class="panel">
         <div class="panel-head"><div class="panel-title">Signal history</div><div class="panel-sub" id="historyCount">0 signals</div></div>
@@ -254,6 +272,7 @@ const PRICE_WS_BASE = 'wss://fstream.binance.com/ws/';
 const LIMIT = 500;
 let candles = [], indicators = {}, signals = [], socket = null, priceSocket = null, reconnectTimer = null, priceReconnectTimer = null;
 let livePrice = null, symbolListLoaded = false;
+let viewportStart = 0, visibleBars = 120, followLatest = true, chartPointers = new Map(), dragState = null, pinchDistance = null;
 let reconnectDelay = 1000, manuallyStopped = false, loadGeneration = 0, backtestResult = null;
 const fmt = n => Number.isFinite(n) ? n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
 const currentSymbol = () => $('symbol').value;
@@ -343,6 +362,7 @@ async function loadBinanceData(){
     if(generation!==loadGeneration)return;
     if(!Array.isArray(raw)||!raw.length)throw new Error('Binance returned no candle data.');
     candles=raw.map(parseKline);livePrice=candles[candles.length-1]?.c??null;
+    visibleBars=Math.min(120,candles.length);viewportStart=Math.max(0,candles.length-visibleBars);followLatest=true;
     calculate();render();
     $('chartSub').textContent=`${currentSymbol()} · ${currentInterval()} · ${candles.length} Binance candles · live stream connecting`;
     connectSocket(generation);
@@ -419,26 +439,78 @@ function drawChart(){
   if(!candles.length||!indicators.vwap)return;
   const canvas=$('chart'),rect=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
   if(rect.width<1||rect.height<1)return;
-  canvas.width=rect.width*dpr;canvas.height=rect.height*dpr;
-  const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+  const total=candles.length;
+  visibleBars=Math.max(20,Math.min(total,visibleBars));
+  if(followLatest)viewportStart=Math.max(0,total-visibleBars);
+  viewportStart=Math.max(0,Math.min(total-visibleBars,Math.round(viewportStart)));
+  const from=viewportStart,to=Math.min(total,from+visibleBars),data=candles.slice(from,to);
+  canvas.width=Math.round(rect.width*dpr);canvas.height=Math.round(rect.height*dpr);
+  const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
   const W=rect.width,H=rect.height,pad={l:8,r:72,t:12,b:25},cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
   ctx.clearRect(0,0,W,H);
-  const from=Math.max(0,candles.length-150),data=candles.slice(from);
-  const vals=[...data.map(x=>x.l),...data.map(x=>x.h),...indicators.lower.slice(from),...indicators.upper.slice(from)].filter(Number.isFinite);
+  const vals=[...data.map(x=>x.l),...data.map(x=>x.h),...indicators.lower.slice(from,to),...indicators.upper.slice(from,to)].filter(Number.isFinite);
+  if(!vals.length)return;
   let min=Math.min(...vals),max=Math.max(...vals);if(max===min){max+=1;min-=1}
   const y=v=>pad.t+(max-v)/(max-min)*ch,x=i=>pad.l+i*cw/Math.max(1,data.length-1);
-  ctx.font='10px system-ui';ctx.strokeStyle='#26334a';ctx.fillStyle='#8291aa';ctx.lineWidth=1;
+  ctx.font='10px system-ui';ctx.strokeStyle='#252f37';ctx.fillStyle='#89949e';ctx.lineWidth=1;
   for(let k=0;k<=5;k++){let val=min+(max-min)*k/5,yy=y(val);ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(W-pad.r,yy);ctx.stroke();ctx.fillText(fmt(val),W-pad.r+7,yy+3)}
   ctx.beginPath();data.forEach((d,j)=>{let i=from+j;j?ctx.lineTo(x(j),y(indicators.upper[i])):ctx.moveTo(x(j),y(indicators.upper[i]))});
   for(let j=data.length-1;j>=0;j--){let i=from+j;ctx.lineTo(x(j),y(indicators.lower[i]))}
   ctx.closePath();ctx.fillStyle='rgba(240,185,11,.055)';ctx.fill();
-  function line(arr,color,width,dash=[]){ctx.beginPath();arr.slice(from).forEach((v,j)=>j?ctx.lineTo(x(j),y(v)):ctx.moveTo(x(j),y(v)));ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.stroke();ctx.setLineDash([])}
+  function line(arr,color,width,dash=[]){ctx.beginPath();arr.slice(from,to).forEach((v,j)=>j?ctx.lineTo(x(j),y(v)):ctx.moveTo(x(j),y(v)));ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.stroke();ctx.setLineDash([])}
   line(indicators.upper,'rgba(240,185,11,.72)',1,[4,4]);line(indicators.lower,'rgba(240,185,11,.72)',1,[4,4]);line(indicators.vwap,'#3d8dff',1.8);
-  const body=Math.max(2,cw/data.length*.62);
+  const body=Math.max(2,Math.min(14,cw/data.length*.62));
   data.forEach((d,j)=>{let xx=x(j),up=d.c>=d.o;ctx.strokeStyle=up?'#23ae75':'#f6465d';ctx.fillStyle=ctx.strokeStyle;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(xx,y(d.h));ctx.lineTo(xx,y(d.l));ctx.stroke();let top=y(Math.max(d.o,d.c)),ht=Math.max(1,Math.abs(y(d.o)-y(d.c)));ctx.fillRect(xx-body/2,top,body,ht)});
-  signals.filter(s=>s.i>=from).forEach(s=>{let xx=x(s.i),yy=y(s.price),buy=s.side==='LONG';ctx.fillStyle=buy?'#23ae75':'#f6465d';ctx.beginPath();if(buy){ctx.moveTo(xx,yy+12);ctx.lineTo(xx-7,yy+24);ctx.lineTo(xx+7,yy+24)}else{ctx.moveTo(xx,yy-12);ctx.lineTo(xx-7,yy-24);ctx.lineTo(xx+7,yy-24)}ctx.closePath();ctx.fill();ctx.font='bold 10px system-ui';ctx.textAlign='center';ctx.fillText(buy?'BUY':'SELL',xx,buy?yy+37:yy-29);ctx.textAlign='left'});
-  ctx.fillStyle='#8291aa';ctx.fillText('Older',pad.l,H-5);ctx.fillText('Latest',W-pad.r-30,H-5);
+  signals.filter(s=>s.i>=from&&s.i<to).forEach(s=>{
+    let xx=x(s.i-from),yy=y(s.price),buy=s.side==='LONG';
+    ctx.fillStyle=buy?'#23ae75':'#f6465d';ctx.strokeStyle='#0b0e11';ctx.lineWidth=1.5;
+    ctx.beginPath();
+    if(buy){ctx.moveTo(xx,yy+10);ctx.lineTo(xx-7,yy+22);ctx.lineTo(xx+7,yy+22)}
+    else{ctx.moveTo(xx,yy-10);ctx.lineTo(xx-7,yy-22);ctx.lineTo(xx+7,yy-22)}
+    ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.font='bold 10px system-ui';ctx.textAlign='center';ctx.fillText(buy?'BUY':'SELL',xx,buy?yy+35:yy-27);ctx.textAlign='left';
+  });
+  ctx.fillStyle='#89949e';ctx.fillText(new Date(data[0].t).toLocaleString(),pad.l,H-5);
+  const last=data[data.length-1];const label=new Date(last.t).toLocaleString();
+  ctx.textAlign='right';ctx.fillText(label,W-pad.r,H-5);ctx.textAlign='left';
+  const active=$('timeframe').value;
+  document.querySelectorAll('.tf-btn').forEach(b=>b.classList.toggle('active',b.dataset.tf===active));
 }
+function resetChartView(){followLatest=true;visibleBars=Math.min(120,candles.length||120);viewportStart=Math.max(0,candles.length-visibleBars);drawChart()}
+function setChartTimeframe(tf){if(!intervalMs[tf]||$('timeframe').value===tf)return;$('timeframe').value=tf;loadBinanceData()}
+function initChartInteractions(){
+  const canvas=$('chart'),wrap=canvas.parentElement;
+  document.querySelectorAll('.tf-btn').forEach(b=>b.addEventListener('click',()=>setChartTimeframe(b.dataset.tf)));
+  $('resetChart').addEventListener('click',resetChartView);
+  canvas.addEventListener('pointerdown',e=>{
+    canvas.setPointerCapture(e.pointerId);chartPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(chartPointers.size===1)dragState={x:e.clientX,start:viewportStart,visible:visibleBars};
+    if(chartPointers.size===2){const pts=[...chartPointers.values()];pinchDistance=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);dragState=null}
+    wrap.classList.add('dragging');
+  });
+  canvas.addEventListener('pointermove',e=>{
+    if(!chartPointers.has(e.pointerId))return;
+    chartPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(chartPointers.size===2){
+      const pts=[...chartPointers.values()],dist=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);
+      if(pinchDistance){const factor=pinchDistance/Math.max(1,dist);zoomChart(factor);pinchDistance=dist}
+      return;
+    }
+    if(!dragState)return;
+    const rect=wrap.getBoundingClientRect(),plotWidth=Math.max(1,rect.width-80);
+    const barsMoved=(dragState.x-e.clientX)/plotWidth*dragState.visible;
+    viewportStart=dragState.start+barsMoved;followLatest=false;drawChart();
+  });
+  const endPointer=e=>{chartPointers.delete(e.pointerId);if(chartPointers.size<2)pinchDistance=null;if(chartPointers.size===1){const p=[...chartPointers.values()][0];dragState={x:p.x,start:viewportStart,visible:visibleBars}}else dragState=null;if(!chartPointers.size)wrap.classList.remove('dragging')};
+  canvas.addEventListener('pointerup',endPointer);canvas.addEventListener('pointercancel',endPointer);canvas.addEventListener('lostpointercapture',endPointer);
+  canvas.addEventListener('wheel',e=>{e.preventDefault();zoomChart(e.deltaY>0?1.15:.87)}, {passive:false});
+}
+function zoomChart(factor){
+  if(!candles.length)return;
+  const old=visibleBars,next=Math.max(20,Math.min(Math.min(500,candles.length),Math.round(old*factor)));
+  const center=viewportStart+old/2;visibleBars=next;viewportStart=center-next/2;followLatest=false;drawChart();
+}
+
 function backtest(){
   const s=getSettings(),trades=[];let nextAllowed=0;
   for(const sig of signals){
@@ -464,6 +536,7 @@ $('runBacktest').addEventListener('click',()=>{calculate();render();backtest()})
 $('symbol').addEventListener('change',loadBinanceData);
 $('timeframe').addEventListener('change',loadBinanceData);
 window.addEventListener('resize',drawChart);
+initChartInteractions();
 loadBinanceData();
 </script>
 </body>
