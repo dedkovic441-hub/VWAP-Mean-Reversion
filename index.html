@@ -137,6 +137,19 @@ td{color:#d5dbe1}
  .controls{padding:10px}
 }
 @media(max-width:380px){.chart-wrap{height:285px}}
+
+/* Compact checkbox controls: override full-width mobile form input sizing */
+.check{display:flex;align-items:center;gap:10px;min-height:24px;line-height:1.4}
+.check input[type="checkbox"]{
+  appearance:auto;-webkit-appearance:checkbox;
+  display:inline-block;flex:0 0 18px;
+  width:18px!important;height:18px!important;
+  min-width:18px;min-height:18px!important;
+  margin:0;padding:0;
+  accent-color:#23ae75;
+  vertical-align:middle;
+}
+
 </style>
 </head>
 <body>
