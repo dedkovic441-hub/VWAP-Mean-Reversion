@@ -150,6 +150,33 @@ td{color:#d5dbe1}
   vertical-align:middle;
 }
 
+
+/* Force compact custom checkboxes on mobile and desktop */
+.controls .field.full .check{display:flex;align-items:center;gap:9px;min-height:22px}
+.controls .field.full .check input[type="checkbox"]{
+  -webkit-appearance:none!important;appearance:none!important;
+  box-sizing:border-box!important;
+  display:inline-grid!important;place-content:center!important;
+  flex:0 0 16px!important;
+  width:16px!important;min-width:16px!important;max-width:16px!important;
+  height:16px!important;min-height:16px!important;max-height:16px!important;
+  margin:0!important;padding:0!important;
+  border:1.5px solid #68737d!important;border-radius:3px!important;
+  background:#0b0e11!important;
+  cursor:pointer;
+}
+.controls .field.full .check input[type="checkbox"]:checked{
+  background:#23ae75!important;border-color:#23ae75!important;
+}
+.controls .field.full .check input[type="checkbox"]:checked::after{
+  content:"";width:8px;height:4px;
+  border-left:2px solid #07120d;border-bottom:2px solid #07120d;
+  transform:rotate(-45deg);margin-top:-2px;
+}
+.controls .field.full .check input[type="checkbox"]:focus-visible{
+  outline:2px solid #23ae75;outline-offset:3px;
+}
+
 </style>
 </head>
 <body>
