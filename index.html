@@ -32,7 +32,7 @@ main{max-width:1500px;margin:auto;padding:22px}.topline{display:flex;justify-con
     <div class="actions"><button id="newData">↻ Reload candles</button><button class="primary" id="runBacktest">Run backtest</button></div>
   </div>
   <section class="cards">
-    <div class="card"><div class="label">Last price</div><div class="value" id="lastPrice">—</div><div class="change" id="priceChange">Waiting for Binance data</div></div>
+    <div class="card"><div class="label">Live mark price</div><div class="value" id="lastPrice">—</div><div class="change" id="priceChange">Waiting for Binance data</div></div>
     <div class="card"><div class="label">VWAP</div><div class="value" id="vwapValue">—</div><div class="change">Session volume-weighted average</div></div>
     <div class="card"><div class="label">RSI (14)</div><div class="value" id="rsiValue">—</div><div class="change" id="rsiState">Momentum reading</div></div>
     <div class="card"><div class="label">Backtest win rate</div><div class="value" id="winRate">—</div><div class="change" id="tradeCount">Run backtest to calculate</div></div>
@@ -40,7 +40,7 @@ main{max-width:1500px;margin:auto;padding:22px}.topline{display:flex;justify-con
   <div class="grid" style="margin-top:16px">
     <div class="maincol">
       <section class="panel">
-        <div class="panel-head"><div><div class="panel-title">BTC/USDT · Simulated candles</div><div class="panel-sub" id="chartSub">Binance USDⓈ-M Futures · loading candles…</div></div><div class="chart-legend"><span><i class="legend-dot" style="background:#22c98a"></i>Price up</span><span><i class="legend-dot" style="background:#ff647c"></i>Price down</span><span><i class="legend-dot" style="background:#65a9ff"></i>VWAP</span><span><i class="legend-dot" style="background:#f4c76b"></i>Deviation bands</span></div></div>
+        <div class="panel-head"><div><div class="panel-title">Selected coin · Live Binance Futures candles</div><div class="panel-sub" id="chartSub">Binance USDⓈ-M Futures · loading candles…</div></div><div class="chart-legend"><span><i class="legend-dot" style="background:#22c98a"></i>Price up</span><span><i class="legend-dot" style="background:#ff647c"></i>Price down</span><span><i class="legend-dot" style="background:#65a9ff"></i>VWAP</span><span><i class="legend-dot" style="background:#f4c76b"></i>Deviation bands</span><span class="green">▲ BUY</span><span class="red">▼ SELL</span></div></div>
         <div class="chart-wrap"><canvas id="chart"></canvas></div>
       </section>
       <section class="panel">
@@ -85,14 +85,17 @@ main{max-width:1500px;margin:auto;padding:22px}.topline{display:flex;justify-con
       </div></section>
     </aside>
   </div>
-  <div class="footer">Educational prototype only. Sample data is randomly generated and is not a live Binance feed. Backtest results are not predictive of future performance.</div>
+  <div class="footer">Live public Binance Futures market data only. BUY/SELL labels are strategy signals, not executed orders or financial advice. Backtest results are not predictive of future performance.</div>
 </main>
 <script>
 const $ = id => document.getElementById(id);
 const REST = 'https://fapi.binance.com/fapi/v1/klines';
-const WS_BASE = 'wss://fstream.binance.com/market/ws/';
+const WS_BASE = 'wss://fstream.binance.com/ws/';
+const EXCHANGE_INFO = 'https://fapi.binance.com/fapi/v1/exchangeInfo';
+const PRICE_WS_BASE = 'wss://fstream.binance.com/ws/';
 const LIMIT = 500;
-let candles = [], indicators = {}, signals = [], socket = null, reconnectTimer = null;
+let candles = [], indicators = {}, signals = [], socket = null, priceSocket = null, reconnectTimer = null, priceReconnectTimer = null;
+let livePrice = null, symbolListLoaded = false;
 let reconnectDelay = 1000, manuallyStopped = false, loadGeneration = 0, backtestResult = null;
 const fmt = n => Number.isFinite(n) ? n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
 const currentSymbol = () => $('symbol').value;
@@ -107,13 +110,15 @@ function disconnectSocket(){
   manuallyStopped=true;
   if(reconnectTimer){clearTimeout(reconnectTimer);reconnectTimer=null}
   if(socket){socket.onclose=null;socket.onerror=null;socket.close();socket=null}
+  if(priceReconnectTimer){clearTimeout(priceReconnectTimer);priceReconnectTimer=null}
+  if(priceSocket){priceSocket.onclose=null;priceSocket.onerror=null;priceSocket.close();priceSocket=null}
 }
 function connectSocket(generation){
   if(generation!==loadGeneration)return;
   manuallyStopped=false;
   const stream=`${currentSymbol().toLowerCase()}@kline_${currentInterval()}`;
   try{socket=new WebSocket(WS_BASE+stream)}catch(e){scheduleReconnect(generation);return}
-  socket.onopen=()=>{if(generation!==loadGeneration)return;reconnectDelay=1000;setStatus('LIVE');};
+  socket.onopen=()=>{if(generation!==loadGeneration)return;reconnectDelay=1000;setStatus('LIVE');connectPriceSocket(generation);};
   socket.onmessage=event=>{
     if(generation!==loadGeneration)return;
     try{
@@ -130,6 +135,21 @@ function connectSocket(generation){
   socket.onerror=()=>{setStatus('RECONNECTING','WebSocket issue')};
   socket.onclose=()=>{if(generation===loadGeneration&&!manuallyStopped)scheduleReconnect(generation)};
 }
+function connectPriceSocket(generation){
+  if(generation!==loadGeneration)return;
+  try{priceSocket=new WebSocket(PRICE_WS_BASE+`${currentSymbol().toLowerCase()}@markPrice@1s`)}catch(e){schedulePriceReconnect(generation);return}
+  priceSocket.onmessage=event=>{
+    if(generation!==loadGeneration)return;
+    try{const msg=JSON.parse(event.data);const p=Number(msg.p);if(!Number.isFinite(p))return;livePrice=p;$('lastPrice').textContent=fmt(p);$('priceChange').textContent=`Live mark price · ${new Date().toLocaleTimeString()}`;}catch(e){}
+  };
+  priceSocket.onerror=()=>{};
+  priceSocket.onclose=()=>{if(generation===loadGeneration&&!manuallyStopped)schedulePriceReconnect(generation)};
+}
+function schedulePriceReconnect(generation){
+  if(generation!==loadGeneration||manuallyStopped)return;
+  if(priceReconnectTimer)clearTimeout(priceReconnectTimer);
+  priceReconnectTimer=setTimeout(()=>connectPriceSocket(generation),3000);
+}
 function scheduleReconnect(generation){
   if(generation!==loadGeneration||manuallyStopped)return;
   setStatus('RECONNECTING');
@@ -140,7 +160,20 @@ function scheduleReconnect(generation){
 function parseKline(k){
   return {t:+k[0],o:+k[1],h:+k[2],l:+k[3],c:+k[4],v:+k[5],closeTime:+k[6],closed:+k[6]<Date.now()};
 }
+async function loadSymbolOptions(){
+  if(symbolListLoaded)return;
+  try{
+    const res=await fetch(EXCHANGE_INFO,{cache:'no-store'});if(!res.ok)throw new Error('exchangeInfo unavailable');
+    const info=await res.json();
+    const symbols=info.symbols.filter(s=>s.status==='TRADING'&&s.contractType==='PERPETUAL'&&s.quoteAsset==='USDT').map(s=>s.symbol).sort();
+    const select=$('symbol'),chosen=select.value;
+    select.innerHTML=symbols.map(s=>`<option value="${s}">${s}</option>`).join('');
+    if(symbols.includes(chosen))select.value=chosen;
+    symbolListLoaded=true;
+  }catch(e){console.warn('Could not load dynamic Binance symbol list; using fallback symbols.',e)}
+}
 async function loadBinanceData(){
+  await loadSymbolOptions();
   const generation=++loadGeneration;
   disconnectSocket();setStatus('LOADING');
   $('chartSub').textContent=`Loading ${currentSymbol()} ${currentInterval()} candles from Binance…`;
@@ -151,7 +184,7 @@ async function loadBinanceData(){
     const raw=await response.json();
     if(generation!==loadGeneration)return;
     if(!Array.isArray(raw)||!raw.length)throw new Error('Binance returned no candle data.');
-    candles=raw.map(parseKline);
+    candles=raw.map(parseKline);livePrice=candles[candles.length-1]?.c??null;
     calculate();render();
     $('chartSub').textContent=`${currentSymbol()} · ${currentInterval()} · ${candles.length} Binance candles · live stream connecting`;
     connectSocket(generation);
@@ -212,7 +245,7 @@ function calculate(){
 function render(){
   if(!candles.length)return;
   const n=candles.length,last=candles[n-1],vw=indicators.vwap[n-1],r=indicators.rsi[n-1],lo=indicators.lower[n-1],up=indicators.upper[n-1];
-  $('lastPrice').textContent=fmt(last.c);$('vwapValue').textContent=fmt(vw);$('rsiValue').textContent=fmt(r);
+  $('lastPrice').textContent=fmt(livePrice??last.c);$('vwapValue').textContent=fmt(vw);$('rsiValue').textContent=fmt(r);
   $('rsiState').textContent=r===null?'Calculating':r<30?'Oversold':r>70?'Overbought':'Neutral';
   $('priceChange').textContent=`${((last.c/candles[0].c-1)*100).toFixed(2)}% over loaded window`;
   $('mClose').textContent=fmt(last.c);$('mLower').textContent=fmt(lo);$('mUpper').textContent=fmt(up);$('mRsi').textContent=fmt(r);
@@ -245,7 +278,7 @@ function drawChart(){
   line(indicators.upper,'rgba(244,199,107,.8)',1,[4,4]);line(indicators.lower,'rgba(244,199,107,.8)',1,[4,4]);line(indicators.vwap,'#65a9ff',1.8);
   const body=Math.max(2,cw/data.length*.62);
   data.forEach((d,j)=>{let xx=x(j),up=d.c>=d.o;ctx.strokeStyle=up?'#22c98a':'#ff647c';ctx.fillStyle=ctx.strokeStyle;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(xx,y(d.h));ctx.lineTo(xx,y(d.l));ctx.stroke();let top=y(Math.max(d.o,d.c)),ht=Math.max(1,Math.abs(y(d.o)-y(d.c)));ctx.fillRect(xx-body/2,top,body,ht)});
-  signals.filter(s=>s.i>=from).forEach(s=>{let xx=x(s.i),yy=y(s.price);ctx.fillStyle=s.side==='LONG'?'#22c98a':'#ff647c';ctx.beginPath();if(s.side==='LONG'){ctx.moveTo(xx,yy+12);ctx.lineTo(xx-6,yy+22);ctx.lineTo(xx+6,yy+22)}else{ctx.moveTo(xx,yy-12);ctx.lineTo(xx-6,yy-22);ctx.lineTo(xx+6,yy-22)}ctx.closePath();ctx.fill()});
+  signals.filter(s=>s.i>=from).forEach(s=>{let xx=x(s.i),yy=y(s.price),buy=s.side==='LONG';ctx.fillStyle=buy?'#22c98a':'#ff647c';ctx.beginPath();if(buy){ctx.moveTo(xx,yy+12);ctx.lineTo(xx-7,yy+24);ctx.lineTo(xx+7,yy+24)}else{ctx.moveTo(xx,yy-12);ctx.lineTo(xx-7,yy-24);ctx.lineTo(xx+7,yy-24)}ctx.closePath();ctx.fill();ctx.font='bold 10px system-ui';ctx.textAlign='center';ctx.fillText(buy?'BUY':'SELL',xx,buy?yy+37:yy-29);ctx.textAlign='left'});
   ctx.fillStyle='#8291aa';ctx.fillText('Older',pad.l,H-5);ctx.fillText('Latest',W-pad.r-30,H-5);
 }
 function backtest(){
