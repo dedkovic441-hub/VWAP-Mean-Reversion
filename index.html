@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VWAP Mean Reversion Lab</title>
+<style>
+:root{--bg:#0b1020;--panel:#121a2b;--panel2:#0e1626;--line:#253149;--text:#e8eef9;--muted:#8d9bb3;--green:#22c98a;--red:#ff647c;--blue:#65a9ff;--yellow:#f4c76b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{height:68px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:#0d1423;position:sticky;top:0;z-index:5}
+.brand{display:flex;gap:12px;align-items:center;font-weight:750;font-size:16px}.logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#397ef6,#20c997);display:grid;place-items:center;font-weight:900;color:white}
+.badge{font-size:11px;color:#9ebcff;border:1px solid #34517d;border-radius:20px;padding:4px 9px;letter-spacing:.05em}
+.header-right{display:flex;align-items:center;gap:14px;color:var(--muted);font-size:12px}.dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;margin-right:6px}
+main{max-width:1500px;margin:auto;padding:22px}.topline{display:flex;justify-content:space-between;align-items:end;margin-bottom:18px;gap:15px;flex-wrap:wrap}.eyebrow{color:var(--blue);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}.title{font-size:25px;font-weight:750;margin:4px 0}.subtitle{color:var(--muted);font-size:13px}
+.actions{display:flex;gap:9px;flex-wrap:wrap}button,select,input{font:inherit}button{cursor:pointer;border:1px solid var(--line);background:#19243a;color:var(--text);padding:9px 13px;border-radius:8px}button:hover{border-color:#5277ad}button.primary{background:#2469d8;border-color:#347de9}button:disabled{opacity:.5;cursor:not-allowed}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:16px}.maincol,.sidecol{display:flex;flex-direction:column;gap:16px}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.card,.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px}.card{padding:15px}.label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}.value{font-size:22px;font-weight:750;margin-top:5px}.change{font-size:11px;color:var(--muted);margin-top:3px}.green{color:var(--green)}.red{color:var(--red)}.panel-head{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px}.panel-title{font-size:13px;font-weight:700}.panel-sub{font-size:11px;color:var(--muted)}.chart-wrap{height:440px;padding:8px 12px 12px;position:relative}.chart-wrap canvas{width:100%;height:100%;display:block}.chart-legend{display:flex;gap:15px;flex-wrap:wrap;color:var(--muted);font-size:11px}.legend-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.controls{padding:15px;display:grid;grid-template-columns:1fr 1fr;gap:12px}.field label{display:block;color:var(--muted);font-size:11px;margin-bottom:6px}.field input,.field select{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:7px;color:var(--text);padding:9px;outline:none}.field input:focus,.field select:focus{border-color:var(--blue)}.field.full{grid-column:1/-1}.check{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px}.check input{accent-color:#4288f5}
+.signalbox{padding:16px}.signal-status{padding:12px;border-radius:9px;background:#172338;border:1px solid var(--line);margin:10px 0}.signal-status.long{border-color:#1d765d;background:#102c29}.signal-status.short{border-color:#8a3b50;background:#321b29}.signal-name{font-size:18px;font-weight:800}.signal-desc{font-size:11px;color:var(--muted);margin-top:4px}.metric-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #202b40;font-size:12px}.metric-row:last-child{border:0}.metric-row span:first-child{color:var(--muted)}
+.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;white-space:nowrap}th,td{text-align:left;padding:11px 14px;border-bottom:1px solid #202b40;font-size:11px}th{color:var(--muted);font-weight:600;background:#101929}td{color:#dce5f4}.pill{padding:3px 7px;border-radius:20px;font-size:10px;font-weight:700}.pill.long{background:#123e34;color:#5ce0ad}.pill.short{background:#421e2a;color:#ff8da0}.pill.wait{background:#2c3444;color:#aab6ca}.note{font-size:11px;color:var(--muted);padding:13px 15px;line-height:1.55}.footer{color:#65748e;text-align:center;font-size:10px;padding:22px}
+@media(max-width:1050px){.grid{grid-template-columns:1fr}.sidecol{display:grid;grid-template-columns:1fr 1fr}.cards{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:650px){main{padding:13px}.sidecol{display:flex}.cards{gap:8px}.card{padding:11px}.value{font-size:18px}.chart-wrap{height:330px}header{padding:0 14px}.header-right .hide-mobile{display:none}.title{font-size:21px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><div class="logo">V</div><div>VWAP <span style="color:#7eaefb">MEAN REVERSION</span></div><span class="badge">STRATEGY LAB</span></div>
+  <div class="header-right"><span id="connectionStatus"><i class="dot"></i>CONNECTING</span><span class="hide-mobile">Binance USDⓈ-M Futures · Public market data only</span></div>
+</header>
+<main>
+  <div class="topline">
+    <div><div class="eyebrow">Technical strategy prototype</div><div class="title">VWAP Mean Reversion</div><div class="subtitle">Live Binance Futures candles · VWAP deviation bands + RSI confirmation + reclaim trigger</div></div>
+    <div class="actions"><button id="newData">↻ Reload candles</button><button class="primary" id="runBacktest">Run backtest</button></div>
+  </div>
+  <section class="cards">
+    <div class="card"><div class="label">Last price</div><div class="value" id="lastPrice">—</div><div class="change" id="priceChange">Waiting for Binance data</div></div>
+    <div class="card"><div class="label">VWAP</div><div class="value" id="vwapValue">—</div><div class="change">Session volume-weighted average</div></div>
+    <div class="card"><div class="label">RSI (14)</div><div class="value" id="rsiValue">—</div><div class="change" id="rsiState">Momentum reading</div></div>
+    <div class="card"><div class="label">Backtest win rate</div><div class="value" id="winRate">—</div><div class="change" id="tradeCount">Run backtest to calculate</div></div>
+  </section>
+  <div class="grid" style="margin-top:16px">
+    <div class="maincol">
+      <section class="panel">
+        <div class="panel-head"><div><div class="panel-title">BTC/USDT · Simulated candles</div><div class="panel-sub" id="chartSub">Binance USDⓈ-M Futures · loading candles…</div></div><div class="chart-legend"><span><i class="legend-dot" style="background:#22c98a"></i>Price up</span><span><i class="legend-dot" style="background:#ff647c"></i>Price down</span><span><i class="legend-dot" style="background:#65a9ff"></i>VWAP</span><span><i class="legend-dot" style="background:#f4c76b"></i>Deviation bands</span></div></div>
+        <div class="chart-wrap"><canvas id="chart"></canvas></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><div class="panel-title">Signal history</div><div class="panel-sub" id="historyCount">0 signals</div></div>
+        <div class="table-wrap"><table><thead><tr><th>TIME</th><th>SIDE</th><th>ENTRY</th><th>VWAP</th><th>RSI</th><th>TRIGGER</th></tr></thead><tbody id="signalTable"><tr><td colspan="6" style="color:#8190a8">No signals yet. Adjust settings or generate data.</td></tr></tbody></table></div>
+      </section>
+    </div>
+    <aside class="sidecol">
+      <section class="panel">
+        <div class="panel-head"><div class="panel-title">Strategy settings</div><span class="badge">CONFIG</span></div>
+        <div class="controls">
+          <div class="field"><label for="symbol">Symbol</label><select id="symbol"><option value="BTCUSDT">BTCUSDT</option><option value="ETHUSDT">ETHUSDT</option><option value="SOLUSDT">SOLUSDT</option><option value="BNBUSDT">BNBUSDT</option><option value="XRPUSDT">XRPUSDT</option></select></div>
+          <div class="field"><label for="timeframe">Timeframe</label><select id="timeframe"><option value="1m">1 minute</option><option value="5m" selected>5 minutes</option><option value="15m">15 minutes</option><option value="1h">1 hour</option><option value="4h">4 hours</option><option value="1d">1 day</option></select></div>
+          <div class="field"><label for="bandMult">Band deviation (σ)</label><input id="bandMult" type="number" min="0.5" max="4" step="0.1" value="2"></div>
+          <div class="field"><label for="rsiPeriod">RSI period</label><input id="rsiPeriod" type="number" min="2" max="50" value="14"></div>
+          <div class="field"><label for="oversold">RSI oversold</label><input id="oversold" type="number" min="5" max="49" value="30"></div>
+          <div class="field"><label for="overbought">RSI overbought</label><input id="overbought" type="number" min="51" max="95" value="70"></div>
+          <div class="field"><label for="fee">Fee per side (%)</label><input id="fee" type="number" min="0" max="1" step="0.01" value="0.05"></div>
+          <div class="field"><label for="stopPct">Stop loss (%)</label><input id="stopPct" type="number" min="0.1" max="20" step="0.1" value="1"></div>
+          <div class="field"><label for="target">Take profit (%)</label><input id="target" type="number" min="0.1" max="20" step="0.1" value="1.5"></div>
+          <div class="field"><label for="cooldown">Cooldown (bars)</label><input id="cooldown" type="number" min="0" max="100" value="3"></div>
+          <div class="field full"><label class="check"><input id="shorts" type="checkbox" checked> Enable SHORT signals</label></div>
+          <div class="field full"><label class="check"><input id="confirmClose" type="checkbox" checked> Require candle-close confirmation (no intrabar signals)</label></div>
+          <div class="field full"><button style="width:100%" id="apply">Apply settings & recalculate</button></div>
+        </div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><div class="panel-title">Current signal</div><span class="panel-sub">Latest completed bar</span></div>
+        <div class="signalbox">
+          <div class="signal-status" id="signalStatus"><div class="signal-name" id="signalName">WAIT</div><div class="signal-desc" id="signalDesc">Waiting for a confirmed setup.</div></div>
+          <div class="metric-row"><span>Last close</span><b id="mClose">—</b></div>
+          <div class="metric-row"><span>VWAP lower band</span><b id="mLower">—</b></div>
+          <div class="metric-row"><span>VWAP upper band</span><b id="mUpper">—</b></div>
+          <div class="metric-row"><span>RSI</span><b id="mRsi">—</b></div>
+          <div class="metric-row"><span>Net target / stop</span><b id="mRisk">—</b></div>
+        </div>
+      </section>
+      <section class="panel"><div class="panel-head"><div class="panel-title">Signal rules</div></div><div class="note">
+        <b class="green">LONG:</b> A candle closes below the lower VWAP band with RSI at/below oversold. A later candle closes back above the lower band to trigger.<br><br>
+        <b class="red">SHORT:</b> A candle closes above the upper VWAP band with RSI at/above overbought. A later candle closes back below the upper band to trigger.<br><br>
+        <b>Exit:</b> Backtest exits at configured take-profit or stop-loss, or at the end of the sample.
+      </div></section>
+    </aside>
+  </div>
+  <div class="footer">Educational prototype only. Sample data is randomly generated and is not a live Binance feed. Backtest results are not predictive of future performance.</div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const REST = 'https://fapi.binance.com/fapi/v1/klines';
+const WS_BASE = 'wss://fstream.binance.com/market/ws/';
+const LIMIT = 500;
+let candles = [], indicators = {}, signals = [], socket = null, reconnectTimer = null;
+let reconnectDelay = 1000, manuallyStopped = false, loadGeneration = 0, backtestResult = null;
+const fmt = n => Number.isFinite(n) ? n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+const currentSymbol = () => $('symbol').value;
+const currentInterval = () => $('timeframe').value;
+const intervalMs = {'1m':60000,'5m':300000,'15m':900000,'1h':3600000,'4h':14400000,'1d':86400000};
+function setStatus(state, message=''){
+  const el=$('connectionStatus');
+  const colors={LIVE:'#22c98a',CONNECTING:'#f4c76b',RECONNECTING:'#f4c76b',ERROR:'#ff647c',LOADING:'#f4c76b'};
+  el.innerHTML=`<i class="dot" style="background:${colors[state]||'#8d9bb3'}"></i>${state}${message?` · ${message}`:''}`;
+}
+function disconnectSocket(){
+  manuallyStopped=true;
+  if(reconnectTimer){clearTimeout(reconnectTimer);reconnectTimer=null}
+  if(socket){socket.onclose=null;socket.onerror=null;socket.close();socket=null}
+}
+function connectSocket(generation){
+  if(generation!==loadGeneration)return;
+  manuallyStopped=false;
+  const stream=`${currentSymbol().toLowerCase()}@kline_${currentInterval()}`;
+  try{socket=new WebSocket(WS_BASE+stream)}catch(e){scheduleReconnect(generation);return}
+  socket.onopen=()=>{if(generation!==loadGeneration)return;reconnectDelay=1000;setStatus('LIVE');};
+  socket.onmessage=event=>{
+    if(generation!==loadGeneration)return;
+    try{
+      const msg=JSON.parse(event.data), k=msg.k;
+      if(!k)return;
+      const bar={t:+k.t, o:+k.o, h:+k.h, l:+k.l, c:+k.c, v:+k.v, closeTime:+k.T, closed:!!k.x};
+      const idx=candles.findIndex(x=>x.t===bar.t);
+      if(idx>=0)candles[idx]=bar;
+      else {candles.push(bar);candles.sort((a,b)=>a.t-b.t);if(candles.length>LIMIT)candles.shift();}
+      calculate();render();
+      $('chartSub').textContent=`${currentSymbol()} · ${currentInterval()} · ${candles.length} candles · ${bar.closed?'Candle closed':'Live candle updating'}`;
+    }catch(e){console.error('WebSocket message error',e)}
+  };
+  socket.onerror=()=>{setStatus('RECONNECTING','WebSocket issue')};
+  socket.onclose=()=>{if(generation===loadGeneration&&!manuallyStopped)scheduleReconnect(generation)};
+}
+function scheduleReconnect(generation){
+  if(generation!==loadGeneration||manuallyStopped)return;
+  setStatus('RECONNECTING');
+  if(reconnectTimer)clearTimeout(reconnectTimer);
+  reconnectTimer=setTimeout(()=>connectSocket(generation),reconnectDelay);
+  reconnectDelay=Math.min(reconnectDelay*2,30000);
+}
+function parseKline(k){
+  return {t:+k[0],o:+k[1],h:+k[2],l:+k[3],c:+k[4],v:+k[5],closeTime:+k[6],closed:+k[6]<Date.now()};
+}
+async function loadBinanceData(){
+  const generation=++loadGeneration;
+  disconnectSocket();setStatus('LOADING');
+  $('chartSub').textContent=`Loading ${currentSymbol()} ${currentInterval()} candles from Binance…`;
+  try{
+    const url=`${REST}?symbol=${encodeURIComponent(currentSymbol())}&interval=${encodeURIComponent(currentInterval())}&limit=${LIMIT}`;
+    const response=await fetch(url,{cache:'no-store'});
+    if(!response.ok){let body=await response.text();throw new Error(`Binance REST ${response.status}: ${body.slice(0,180)}`)}
+    const raw=await response.json();
+    if(generation!==loadGeneration)return;
+    if(!Array.isArray(raw)||!raw.length)throw new Error('Binance returned no candle data.');
+    candles=raw.map(parseKline);
+    calculate();render();
+    $('chartSub').textContent=`${currentSymbol()} · ${currentInterval()} · ${candles.length} Binance candles · live stream connecting`;
+    connectSocket(generation);
+  }catch(err){
+    if(generation!==loadGeneration)return;
+    setStatus('ERROR');
+    $('chartSub').textContent=`Data load failed: ${err.message}`;
+    $('signalName').textContent='DATA ERROR';
+    $('signalDesc').textContent='Could not load Binance data. Check internet access or try again.';
+    console.error(err);
+  }
+}
+function getSettings(){
+  return {mult:Math.max(.1,+$('bandMult').value||2),period:Math.max(2,+$('rsiPeriod').value||14),
+    os:+$('oversold').value||30,ob:+$('overbought').value||70,fee:(+$('fee').value||0)/100,
+    sl:(+$('stopPct').value||1)/100,tp:(+$('target').value||1.5)/100,
+    cool:Math.max(0,+$('cooldown').value||0),shorts:$('shorts').checked};
+}
+function vwapAndBands(data,mult){
+  let sumPV=0,sumP2V=0,sumV=0,values=[],upper=[],lower=[];
+  data.forEach(d=>{
+    const typical=(d.h+d.l+d.c)/3, vol=d.v;
+    sumPV+=typical*vol;sumP2V+=typical*typical*vol;sumV+=vol;
+    const vw=sumV?sumPV/sumV:typical;
+    const variance=sumV?Math.max(0,sumP2V/sumV-vw*vw):0,sd=Math.sqrt(variance);
+    values.push(vw);upper.push(vw+sd*mult);lower.push(vw-sd*mult);
+  });
+  return {vwap:values,upper,lower};
+}
+function rsiSeries(data,period){
+  let out=Array(data.length).fill(null),gains=0,losses=0;
+  if(data.length<=period)return out;
+  for(let i=1;i<=period;i++){let d=data[i].c-data[i-1].c;gains+=Math.max(d,0);losses+=Math.max(-d,0)}
+  let ag=gains/period,al=losses/period;out[period]=al===0?100:100-100/(1+ag/al);
+  for(let i=period+1;i<data.length;i++){let d=data[i].c-data[i-1].c;ag=(ag*(period-1)+Math.max(d,0))/period;al=(al*(period-1)+Math.max(-d,0))/period;out[i]=al===0?100:100-100/(1+ag/al)}
+  return out;
+}
+function calculate(){
+  if(!candles.length)return;
+  const s=getSettings();indicators=vwapAndBands(candles,s.mult);indicators.rsi=rsiSeries(candles,s.period);
+  let pendingLong=false,pendingShort=false,lastSignal=-999;signals=[];
+  for(let i=1;i<candles.length;i++){
+    const d=candles[i],prev=candles[i-1],r=indicators.rsi[i];
+    // Strategy decisions are generated only from completed candles.
+    if(!d.closed||r===null)continue;
+    if(i-lastSignal<=s.cool)continue;
+    if(d.c<indicators.lower[i]&&r<=s.os)pendingLong=true;
+    if(s.shorts&&d.c>indicators.upper[i]&&r>=s.ob)pendingShort=true;
+    if(pendingLong&&prev.c<=indicators.lower[i-1]&&d.c>indicators.lower[i]){
+      signals.push({i,side:'LONG',price:d.c,vwap:indicators.vwap[i],rsi:r,reason:'Reclaimed lower band'});
+      pendingLong=false;pendingShort=false;lastSignal=i;
+    }else if(pendingShort&&prev.c>=indicators.upper[i-1]&&d.c<indicators.upper[i]){
+      signals.push({i,side:'SHORT',price:d.c,vwap:indicators.vwap[i],rsi:r,reason:'Rejected upper band'});
+      pendingShort=false;pendingLong=false;lastSignal=i;
+    }
+  }
+}
+function render(){
+  if(!candles.length)return;
+  const n=candles.length,last=candles[n-1],vw=indicators.vwap[n-1],r=indicators.rsi[n-1],lo=indicators.lower[n-1],up=indicators.upper[n-1];
+  $('lastPrice').textContent=fmt(last.c);$('vwapValue').textContent=fmt(vw);$('rsiValue').textContent=fmt(r);
+  $('rsiState').textContent=r===null?'Calculating':r<30?'Oversold':r>70?'Overbought':'Neutral';
+  $('priceChange').textContent=`${((last.c/candles[0].c-1)*100).toFixed(2)}% over loaded window`;
+  $('mClose').textContent=fmt(last.c);$('mLower').textContent=fmt(lo);$('mUpper').textContent=fmt(up);$('mRsi').textContent=fmt(r);
+  $('mRisk').textContent=(+$('target').value).toFixed(2)+'% / '+(+$('stopPct').value).toFixed(2)+'%';
+  const latest=signals[signals.length-1],status=$('signalStatus');status.className='signal-status';
+  if(latest){$('signalName').textContent=latest.side;$('signalDesc').textContent=latest.reason+' · '+new Date(candles[latest.i].t).toLocaleString();status.classList.add(latest.side.toLowerCase())}
+  else{$('signalName').textContent='WAIT';$('signalDesc').textContent=last.closed?'No confirmed setup on loaded candles.':'Waiting for current candle to close; signals use completed candles only.'}
+  $('historyCount').textContent=signals.length+' signals';
+  $('signalTable').innerHTML=signals.slice().reverse().slice(0,12).map(x=>`<tr><td>${new Date(candles[x.i].t).toLocaleString()}</td><td><span class="pill ${x.side.toLowerCase()}">${x.side}</span></td><td>${fmt(x.price)}</td><td>${fmt(x.vwap)}</td><td>${fmt(x.rsi)}</td><td>${x.reason}</td></tr>`).join('')||'<tr><td colspan="6" style="color:#8190a8">No confirmed signals found in loaded candles.</td></tr>';
+  drawChart();
+}
+function drawChart(){
+  if(!candles.length||!indicators.vwap)return;
+  const canvas=$('chart'),rect=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
+  if(rect.width<1||rect.height<1)return;
+  canvas.width=rect.width*dpr;canvas.height=rect.height*dpr;
+  const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+  const W=rect.width,H=rect.height,pad={l:8,r:72,t:12,b:25},cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
+  ctx.clearRect(0,0,W,H);
+  const from=Math.max(0,candles.length-150),data=candles.slice(from);
+  const vals=[...data.map(x=>x.l),...data.map(x=>x.h),...indicators.lower.slice(from),...indicators.upper.slice(from)].filter(Number.isFinite);
+  let min=Math.min(...vals),max=Math.max(...vals);if(max===min){max+=1;min-=1}
+  const y=v=>pad.t+(max-v)/(max-min)*ch,x=i=>pad.l+i*cw/Math.max(1,data.length-1);
+  ctx.font='10px system-ui';ctx.strokeStyle='#26334a';ctx.fillStyle='#8291aa';ctx.lineWidth=1;
+  for(let k=0;k<=5;k++){let val=min+(max-min)*k/5,yy=y(val);ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(W-pad.r,yy);ctx.stroke();ctx.fillText(fmt(val),W-pad.r+7,yy+3)}
+  ctx.beginPath();data.forEach((d,j)=>{let i=from+j;j?ctx.lineTo(x(j),y(indicators.upper[i])):ctx.moveTo(x(j),y(indicators.upper[i]))});
+  for(let j=data.length-1;j>=0;j--){let i=from+j;ctx.lineTo(x(j),y(indicators.lower[i]))}
+  ctx.closePath();ctx.fillStyle='rgba(244,199,107,.07)';ctx.fill();
+  function line(arr,color,width,dash=[]){ctx.beginPath();arr.slice(from).forEach((v,j)=>j?ctx.lineTo(x(j),y(v)):ctx.moveTo(x(j),y(v)));ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.stroke();ctx.setLineDash([])}
+  line(indicators.upper,'rgba(244,199,107,.8)',1,[4,4]);line(indicators.lower,'rgba(244,199,107,.8)',1,[4,4]);line(indicators.vwap,'#65a9ff',1.8);
+  const body=Math.max(2,cw/data.length*.62);
+  data.forEach((d,j)=>{let xx=x(j),up=d.c>=d.o;ctx.strokeStyle=up?'#22c98a':'#ff647c';ctx.fillStyle=ctx.strokeStyle;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(xx,y(d.h));ctx.lineTo(xx,y(d.l));ctx.stroke();let top=y(Math.max(d.o,d.c)),ht=Math.max(1,Math.abs(y(d.o)-y(d.c)));ctx.fillRect(xx-body/2,top,body,ht)});
+  signals.filter(s=>s.i>=from).forEach(s=>{let xx=x(s.i),yy=y(s.price);ctx.fillStyle=s.side==='LONG'?'#22c98a':'#ff647c';ctx.beginPath();if(s.side==='LONG'){ctx.moveTo(xx,yy+12);ctx.lineTo(xx-6,yy+22);ctx.lineTo(xx+6,yy+22)}else{ctx.moveTo(xx,yy-12);ctx.lineTo(xx-6,yy-22);ctx.lineTo(xx+6,yy-22)}ctx.closePath();ctx.fill()});
+  ctx.fillStyle='#8291aa';ctx.fillText('Older',pad.l,H-5);ctx.fillText('Latest',W-pad.r-30,H-5);
+}
+function backtest(){
+  const s=getSettings(),trades=[];let nextAllowed=0;
+  for(const sig of signals){
+    if(sig.i<nextAllowed)continue;
+    let exitPrice=candles[candles.length-1].c,reason='End of loaded data',exitIndex=candles.length-1;
+    for(let j=sig.i+1;j<candles.length;j++){
+      const move=sig.side==='LONG'?(candles[j].c-sig.price)/sig.price:(sig.price-candles[j].c)/sig.price;
+      if(move>=s.tp){exitPrice=candles[j].c;reason='Take profit';exitIndex=j;break}
+      if(move<=-s.sl){exitPrice=candles[j].c;reason='Stop loss';exitIndex=j;break}
+    }
+    const gross=sig.side==='LONG'?(exitPrice-sig.price)/sig.price:(sig.price-exitPrice)/sig.price;
+    const net=gross-2*s.fee;trades.push({net,reason,side:sig.side});
+    nextAllowed=exitIndex+1;
+  }
+  const wins=trades.filter(t=>t.net>0).length,rate=trades.length?wins/trades.length*100:0;
+  const net=trades.reduce((a,t)=>a+t.net,0)*100;
+  $('winRate').textContent=trades.length?rate.toFixed(1)+'%':'—';
+  $('tradeCount').textContent=trades.length?`${wins}/${trades.length} profitable · Net ${net.toFixed(2)}% after estimated fees`:'No trades in loaded history';
+}
+$('apply').addEventListener('click',()=>{calculate();render();$('winRate').textContent='—';$('tradeCount').textContent='Run backtest to recalculate'});
+$('newData').addEventListener('click',loadBinanceData);
+$('runBacktest').addEventListener('click',()=>{calculate();render();backtest()});
+$('symbol').addEventListener('change',loadBinanceData);
+$('timeframe').addEventListener('change',loadBinanceData);
+window.addEventListener('resize',drawChart);
+loadBinanceData();
+</script>
+</body>
+</html>
